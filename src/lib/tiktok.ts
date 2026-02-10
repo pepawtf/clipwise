@@ -280,11 +280,15 @@ export async function initVideoPost(
     }
   );
 
-  if (!res.ok) {
-    throw new Error(`Failed to init video post: ${res.statusText}`);
+  const data = await res.json();
+
+  if (!res.ok || (data.error?.code && data.error.code !== "ok")) {
+    const errMsg = data.error?.message || data.error_description || res.statusText;
+    const errCode = data.error?.code || res.status;
+    throw new Error(`Post init failed [${errCode}]: ${errMsg} (log_id: ${data.error?.log_id || "n/a"})`);
   }
 
-  return res.json();
+  return data;
 }
 
 /**
