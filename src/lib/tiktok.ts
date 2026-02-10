@@ -246,9 +246,10 @@ export async function queryVideos(
 export async function initVideoPost(
   accessToken: string,
   options: PostVideoOptions,
-  videoSize: number,
-  chunkSize: number = 10_000_000
+  videoSize: number
 ): Promise<TikTokPostInitResponse> {
+  // Videos under 5MB must be single-chunk. Otherwise use 10MB chunks (min 5MB, max 64MB).
+  const chunkSize = videoSize < 5_000_000 ? videoSize : 10_000_000;
   const totalChunkCount = Math.ceil(videoSize / chunkSize);
 
   const res = await fetch(
