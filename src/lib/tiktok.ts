@@ -22,6 +22,7 @@ const SCOPES = [
   "user.info.stats",
   "video.list",
   "video.publish",
+  "video.upload",
 ].join(",");
 
 /**
