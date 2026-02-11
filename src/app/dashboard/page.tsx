@@ -28,6 +28,8 @@ function VideoCard({ video }: { video: TikTokVideo }) {
           src={video.cover_image_url}
           alt={video.title || video.video_description || "Video"}
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           onError={() => setImgError(true)}
         />
       ) : (
@@ -197,6 +199,7 @@ export default function DashboardPage() {
               src={user.avatar_large_url || user.avatar_url}
               alt={user.display_name}
               className="w-16 h-16 rounded-full object-cover"
+              referrerPolicy="no-referrer"
             />
           )}
           <div>
