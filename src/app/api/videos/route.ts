@@ -27,6 +27,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Log video data for debugging thumbnail issues
+    console.log("[videos] Response:", JSON.stringify(videos.data?.videos?.map((v: { id: string; cover_image_url?: string }) => ({
+      id: v.id,
+      cover_image_url: v.cover_image_url || "EMPTY",
+    }))));
+
     return NextResponse.json(videos.data);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch videos";

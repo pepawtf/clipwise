@@ -19,6 +19,45 @@ function formatDate(timestamp: number): string {
   });
 }
 
+function VideoThumbnail({ video }: { video: TikTokVideo }) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div className="relative aspect-video overflow-hidden bg-neutral-100 dark:bg-neutral-900">
+      {video.cover_image_url && !imgError ? (
+        <img
+          src={video.cover_image_url}
+          alt={video.title || video.video_description || "Video"}
+          className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <svg
+            className="w-10 h-10 text-neutral-300 dark:text-neutral-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+      )}
+      {video.duration != null && (
+        <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+          {Math.floor(video.duration / 60)}:
+          {(video.duration % 60).toString().padStart(2, "0")}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<TikTokUser | null>(null);
@@ -212,27 +251,13 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {videos.map((video) => (
                 <div
                   key={video.id}
                   className="rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
                 >
-                  {video.cover_image_url && (
-                    <div className="relative aspect-[9/16] max-h-64 overflow-hidden bg-neutral-100 dark:bg-neutral-900">
-                      <img
-                        src={video.cover_image_url}
-                        alt={video.title || video.video_description || "Video"}
-                        className="w-full h-full object-cover"
-                      />
-                      {video.duration && (
-                        <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                          {Math.floor(video.duration / 60)}:
-                          {(video.duration % 60).toString().padStart(2, "0")}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <VideoThumbnail video={video} />
 
                   <div className="p-4">
                     <p className="font-medium text-sm mb-2 line-clamp-2">
