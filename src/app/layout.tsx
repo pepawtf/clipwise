@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import Nav from "./components/nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,26 +53,7 @@ export default function RootLayout({
               <span>Clipwise</span>
             </Link>
 
-            <nav className="flex items-center gap-6">
-              <Link
-                href="/dashboard"
-                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/post"
-                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              >
-                Post Video
-              </Link>
-              <Link
-                href="/api/auth/login"
-                className="text-sm bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2 rounded-lg hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors"
-              >
-                Login with TikTok
-              </Link>
-            </nav>
+            <Nav />
           </div>
         </header>
 
