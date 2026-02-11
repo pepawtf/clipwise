@@ -11,30 +11,29 @@ function formatNumber(num: number | undefined): string {
   return num.toString();
 }
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
-function VideoThumbnail({ video }: { video: TikTokVideo }) {
+function VideoCard({ video }: { video: TikTokVideo }) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="relative aspect-video overflow-hidden bg-neutral-100 dark:bg-neutral-900">
+    <a
+      href={video.share_url || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative block rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-900 aspect-[9/16]"
+    >
+      {/* Thumbnail */}
       {video.cover_image_url && !imgError ? (
         <img
           src={video.cover_image_url}
           alt={video.title || video.video_description || "Video"}
-          className="w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImgError(true)}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center">
           <svg
-            className="w-10 h-10 text-neutral-300 dark:text-neutral-700"
+            className="w-12 h-12 text-neutral-300 dark:text-neutral-700"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -48,13 +47,44 @@ function VideoThumbnail({ video }: { video: TikTokVideo }) {
           </svg>
         </div>
       )}
+
+      {/* Gradient overlay at bottom */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+      {/* Duration badge */}
       {video.duration != null && (
-        <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-          {Math.floor(video.duration / 60)}:
-          {(video.duration % 60).toString().padStart(2, "0")}
+        <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+          {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, "0")}
         </span>
       )}
-    </div>
+
+      {/* Bottom info overlay */}
+      <div className="absolute inset-x-0 bottom-0 p-3 text-white">
+        <p className="text-xs font-medium line-clamp-2 mb-2">
+          {video.title || video.video_description || "Untitled"}
+        </p>
+        <div className="flex items-center gap-3 text-[10px]">
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+            </svg>
+            {formatNumber(video.view_count)}
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            {formatNumber(video.like_count)}
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18z"/>
+            </svg>
+            {formatNumber(video.comment_count)}
+          </span>
+        </div>
+      </div>
+    </a>
   );
 }
 
@@ -251,77 +281,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {videos.map((video) => (
-                <div
-                  key={video.id}
-                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
-                >
-                  <VideoThumbnail video={video} />
-
-                  <div className="p-4">
-                    <p className="font-medium text-sm mb-2 line-clamp-2">
-                      {video.title || video.video_description || "Untitled"}
-                    </p>
-
-                    {video.create_time && (
-                      <p className="text-xs text-neutral-500 mb-3">
-                        {formatDate(video.create_time)}
-                      </p>
-                    )}
-
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="text-center">
-                        <p className="text-xs text-neutral-500">Views</p>
-                        <p className="text-sm font-semibold">
-                          {formatNumber(video.view_count)}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-neutral-500">Likes</p>
-                        <p className="text-sm font-semibold">
-                          {formatNumber(video.like_count)}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-neutral-500">Comments</p>
-                        <p className="text-sm font-semibold">
-                          {formatNumber(video.comment_count)}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-neutral-500">Shares</p>
-                        <p className="text-sm font-semibold">
-                          {formatNumber(video.share_count)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {video.share_url && (
-                      <a
-                        href={video.share_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-                      >
-                        View on TikTok
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-                </div>
+                <VideoCard key={video.id} video={video} />
               ))}
             </div>
 
