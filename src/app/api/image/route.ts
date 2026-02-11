@@ -7,11 +7,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "url parameter required" }, { status: 400 });
   }
 
-  // Only allow TikTok CDN domains
-  const allowed = ["tiktokv.com", "tiktokcdn.com", "tiktok.com"];
+  // Only allow TikTok CDN domains (includes regional variants like tiktokcdn-us.com)
   try {
     const parsed = new URL(url);
-    if (!allowed.some((d) => parsed.hostname.endsWith(d))) {
+    const h = parsed.hostname;
+    const isTikTok =
+      h.endsWith(".tiktokcdn.com") ||
+      h.endsWith(".tiktokv.com") ||
+      h.endsWith(".tiktok.com") ||
+      /\.tiktokcdn-\w+\.com$/.test(h);
+    if (!isTikTok) {
+      console.log("[image-proxy] Blocked domain:", h);
       return NextResponse.json({ error: "Domain not allowed" }, { status: 403 });
     }
   } catch {
@@ -28,6 +34,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!res.ok) {
+      console.log("[image-proxy] Upstream error:", res.status, res.statusText, "for URL:", url);
       return NextResponse.json({ error: "Failed to fetch image" }, { status: res.status });
     }
 
@@ -40,7 +47,8 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "public, max-age=3600",
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[image-proxy] Fetch error:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "Failed to proxy image" }, { status: 500 });
   }
 }

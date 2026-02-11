@@ -148,11 +148,6 @@ export default function DashboardPage() {
     Promise.all([fetchUser(), fetchVideos()]).finally(() => setLoading(false));
   }, [fetchUser, fetchVideos]);
 
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-  };
-
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -226,12 +221,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 border border-neutral-300 dark:border-neutral-700 px-4 py-2 rounded-lg transition-colors"
-        >
-          Logout
-        </button>
       </div>
 
       {/* Stats Cards */}
