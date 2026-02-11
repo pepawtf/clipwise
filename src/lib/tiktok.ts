@@ -293,6 +293,47 @@ export async function initVideoPost(
 }
 
 /**
+ * Initialize a draft video upload (sends to creator's inbox)
+ * Uses video.upload scope — no post_info needed
+ */
+export async function initDraftVideoPost(
+  accessToken: string,
+  videoSize: number
+): Promise<TikTokPostInitResponse> {
+  const chunkSize = videoSize < 5_000_000 ? videoSize : 10_000_000;
+  const totalChunkCount = Math.ceil(videoSize / chunkSize);
+
+  const res = await fetch(
+    `${TIKTOK_API_BASE}/post/publish/inbox/video/init/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: JSON.stringify({
+        source_info: {
+          source: "FILE_UPLOAD",
+          video_size: videoSize,
+          chunk_size: chunkSize,
+          total_chunk_count: totalChunkCount,
+        },
+      }),
+    }
+  );
+
+  const data = await res.json();
+
+  if (!res.ok || (data.error?.code && data.error.code !== "ok")) {
+    const errMsg = data.error?.message || data.error_description || res.statusText;
+    const errCode = data.error?.code || res.status;
+    throw new Error(`Draft init failed [${errCode}]: ${errMsg} (log_id: ${data.error?.log_id || "n/a"})`);
+  }
+
+  return data;
+}
+
+/**
  * Check the status of a video post
  */
 export async function getPostStatus(

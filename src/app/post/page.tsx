@@ -41,19 +41,18 @@ export default function PostVideoPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const uploadVideo = async (isDraft: boolean) => {
     setError(null);
 
     if (!file) {
       setError("Please select a video file");
       return;
     }
-    if (!title.trim()) {
+    if (!isDraft && !title.trim()) {
       setError("Please enter a title/caption");
       return;
     }
-    if (!privacyLevel) {
+    if (!isDraft && !privacyLevel) {
       setError("Please select a privacy level");
       return;
     }
@@ -61,20 +60,27 @@ export default function PostVideoPage() {
     try {
       // Step 1: Initialize the post
       setStatus("initializing");
-      setStatusMessage("Initializing upload...");
+      setStatusMessage(
+        isDraft ? "Initializing draft upload..." : "Initializing upload..."
+      );
 
-      const initRes = await fetch("/api/post/init", {
+      const initEndpoint = isDraft ? "/api/post/draft" : "/api/post/init";
+      const initBody = isDraft
+        ? { video_size: file.size }
+        : {
+            title: title.trim(),
+            privacy_level: privacyLevel,
+            disable_duet: disableDuet,
+            disable_stitch: disableStitch,
+            disable_comment: disableComment,
+            brand_content_toggle: brandContentToggle,
+            video_size: file.size,
+          };
+
+      const initRes = await fetch(initEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          privacy_level: privacyLevel,
-          disable_duet: disableDuet,
-          disable_stitch: disableStitch,
-          disable_comment: disableComment,
-          brand_content_toggle: brandContentToggle,
-          video_size: file.size,
-        }),
+        body: JSON.stringify(initBody),
       });
 
       if (initRes.status === 401) {
@@ -84,7 +90,7 @@ export default function PostVideoPage() {
 
       if (!initRes.ok) {
         const data = await initRes.json();
-        throw new Error(data.error || "Failed to initialize post");
+        throw new Error(data.error || "Failed to initialize upload");
       }
 
       const { publish_id, upload_url } = await initRes.json();
@@ -94,7 +100,8 @@ export default function PostVideoPage() {
         setStatus("uploading");
         setStatusMessage("Uploading video...");
 
-        const chunkSize = 10_000_000; // 10MB chunks
+        const chunkSize =
+          file.size < 5_000_000 ? file.size : 10_000_000;
         const totalChunks = Math.ceil(file.size / chunkSize);
 
         for (let i = 0; i < totalChunks; i++) {
@@ -122,7 +129,11 @@ export default function PostVideoPage() {
 
       // Step 3: Poll for status
       setStatus("processing");
-      setStatusMessage("Processing your video...");
+      setStatusMessage(
+        isDraft
+          ? "Sending to your TikTok inbox..."
+          : "Processing your video..."
+      );
 
       let attempts = 0;
       const maxAttempts = 30;
@@ -140,14 +151,18 @@ export default function PostVideoPage() {
 
         if (statusData.status === "PUBLISH_COMPLETE") {
           setStatus("complete");
-          setStatusMessage("Video published successfully!");
+          setStatusMessage(
+            isDraft
+              ? "Draft sent to your TikTok inbox! Open TikTok to edit and publish."
+              : "Video published successfully!"
+          );
           return;
         } else if (statusData.status === "FAILED") {
-          throw new Error(statusData.fail_reason || "Video publishing failed");
+          throw new Error(statusData.fail_reason || "Video upload failed");
         } else if (statusData.status === "SEND_TO_USER_INBOX") {
           setStatus("complete");
           setStatusMessage(
-            "Video sent to your TikTok inbox for final editing!"
+            "Video sent to your TikTok inbox! Open TikTok to edit and publish."
           );
           return;
         }
@@ -166,6 +181,15 @@ export default function PostVideoPage() {
       setError(err instanceof Error ? err.message : "An error occurred");
       setStatusMessage("");
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await uploadVideo(false);
+  };
+
+  const handleDraft = async () => {
+    await uploadVideo(true);
   };
 
   const resetForm = () => {
@@ -419,14 +443,28 @@ export default function PostVideoPage() {
             </p>
           </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={!file || !title.trim() || !privacyLevel}
-            className="w-full py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Post Video
-          </button>
+          {/* Submit Buttons */}
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={!file || !title.trim() || !privacyLevel}
+              className="flex-1 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Post Video
+            </button>
+            <button
+              type="button"
+              onClick={handleDraft}
+              disabled={!file}
+              className="flex-1 py-3 border border-neutral-300 dark:border-neutral-700 rounded-xl font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Save as Draft
+            </button>
+          </div>
+          <p className="text-xs text-neutral-500 text-center">
+            Drafts are sent to your TikTok inbox — open TikTok to add a
+            caption, set privacy, and publish.
+          </p>
         </form>
       )}
     </div>
