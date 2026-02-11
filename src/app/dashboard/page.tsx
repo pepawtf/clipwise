@@ -11,6 +11,10 @@ function formatNumber(num: number | undefined): string {
   return num.toString();
 }
 
+function proxyImg(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  return `/api/image?url=${encodeURIComponent(url)}`;
+}
 
 function VideoCard({ video }: { video: TikTokVideo }) {
   const [imgError, setImgError] = useState(false);
@@ -25,11 +29,9 @@ function VideoCard({ video }: { video: TikTokVideo }) {
       {/* Thumbnail */}
       {video.cover_image_url && !imgError ? (
         <img
-          src={video.cover_image_url}
+          src={proxyImg(video.cover_image_url)}
           alt={video.title || video.video_description || "Video"}
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
           onError={() => setImgError(true)}
         />
       ) : (
@@ -196,10 +198,9 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4">
           {user?.avatar_url && (
             <img
-              src={user.avatar_large_url || user.avatar_url}
+              src={proxyImg(user.avatar_large_url || user.avatar_url)}
               alt={user.display_name}
               className="w-16 h-16 rounded-full object-cover"
-              referrerPolicy="no-referrer"
             />
           )}
           <div>
