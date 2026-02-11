@@ -129,6 +129,20 @@ export interface PostVideoOptions {
   brandOrganicToggle?: boolean;
 }
 
+// Post photo carousel options
+export interface PostPhotoOptions {
+  title?: string;
+  description?: string;
+  privacyLevel: PrivacyLevel;
+  disableComment?: boolean;
+  autoAddMusic?: boolean;
+  brandContentToggle?: boolean;
+  brandOrganicToggle?: boolean;
+  photoCoverIndex?: number;
+  photoImages: string[];
+  postMode: "DIRECT_POST" | "MEDIA_UPLOAD";
+}
+
 // Session data stored in cookies
 export interface SessionData {
   accessToken: string;

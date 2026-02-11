@@ -6,6 +6,7 @@ import type {
   TikTokPostInitResponse,
   TikTokPostStatusResponse,
   PostVideoOptions,
+  PostPhotoOptions,
 } from "./types";
 
 const TIKTOK_AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/";
@@ -328,6 +329,60 @@ export async function initDraftVideoPost(
     const errMsg = data.error?.message || data.error_description || res.statusText;
     const errCode = data.error?.code || res.status;
     throw new Error(`Draft init failed [${errCode}]: ${errMsg} (log_id: ${data.error?.log_id || "n/a"})`);
+  }
+
+  return data;
+}
+
+/**
+ * Initialize a photo carousel post
+ */
+export async function initPhotoPost(
+  accessToken: string,
+  options: PostPhotoOptions
+): Promise<TikTokPostInitResponse> {
+  const isDirect = options.postMode === "DIRECT_POST";
+
+  const postInfo: Record<string, unknown> = {};
+  if (options.title) postInfo.title = options.title;
+  if (options.description) postInfo.description = options.description;
+  if (isDirect) {
+    postInfo.privacy_level = options.privacyLevel;
+    postInfo.disable_comment = options.disableComment ?? false;
+    postInfo.auto_add_music = options.autoAddMusic ?? true;
+    postInfo.brand_content_toggle = options.brandContentToggle ?? false;
+    postInfo.brand_organic_toggle = options.brandOrganicToggle ?? false;
+  }
+
+  const body: Record<string, unknown> = {
+    media_type: "PHOTO",
+    post_mode: options.postMode,
+    post_info: postInfo,
+    source_info: {
+      source: "PULL_FROM_URL",
+      photo_images: options.photoImages,
+      photo_cover_index: options.photoCoverIndex ?? 0,
+    },
+  };
+
+  const res = await fetch(
+    `${TIKTOK_API_BASE}/post/publish/content/init/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  const data = await res.json();
+
+  if (!res.ok || (data.error?.code && data.error.code !== "ok")) {
+    const errMsg = data.error?.message || data.error_description || res.statusText;
+    const errCode = data.error?.code || res.status;
+    throw new Error(`Photo post failed [${errCode}]: ${errMsg} (log_id: ${data.error?.log_id || "n/a"})`);
   }
 
   return data;
