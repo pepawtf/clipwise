@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { PrivacyLevel } from "@/lib/types";
+import type { PrivacyLevel, TikTokCreatorInfo } from "@/lib/types";
 
 type PostStatus =
   | "idle"
@@ -12,6 +12,13 @@ type PostStatus =
   | "complete"
   | "failed";
 
+const PRIVACY_LABELS: Record<PrivacyLevel, string> = {
+  PUBLIC_TO_EVERYONE: "Public",
+  MUTUAL_FOLLOW_FRIENDS: "Friends",
+  FOLLOWER_OF_CREATOR: "Followers",
+  SELF_ONLY: "Only Me",
+};
+
 export default function PostVideoPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -19,14 +26,52 @@ export default function PostVideoPage() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel | "">("");
-  const [disableDuet, setDisableDuet] = useState(false);
-  const [disableStitch, setDisableStitch] = useState(false);
-  const [disableComment, setDisableComment] = useState(false);
+  const [disableDuet, setDisableDuet] = useState(true);
+  const [disableStitch, setDisableStitch] = useState(true);
+  const [disableComment, setDisableComment] = useState(true);
   const [brandContentToggle, setBrandContentToggle] = useState(false);
+  const [brandOrganicToggle, setBrandOrganicToggle] = useState(false);
   const [status, setStatus] = useState<PostStatus>("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Creator info from TikTok API
+  const [creatorInfo, setCreatorInfo] = useState<TikTokCreatorInfo | null>(null);
+  const [creatorLoading, setCreatorLoading] = useState(true);
+
+  const fetchCreatorInfo = useCallback(async () => {
+    try {
+      const res = await fetch("/api/creator");
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to fetch creator info");
+      const data: TikTokCreatorInfo = await res.json();
+      setCreatorInfo(data);
+
+      // Apply creator's defaults
+      if (data.comment_disabled) setDisableComment(true);
+      if (data.duet_disabled) setDisableDuet(true);
+      if (data.stitch_disabled) setDisableStitch(true);
+    } catch {
+      // Non-critical — form still works with hardcoded privacy levels
+    } finally {
+      setCreatorLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    fetchCreatorInfo();
+  }, [fetchCreatorInfo]);
+
+  const privacyOptions: PrivacyLevel[] = creatorInfo?.privacy_level_options || [
+    "PUBLIC_TO_EVERYONE",
+    "MUTUAL_FOLLOW_FRIENDS",
+    "FOLLOWER_OF_CREATOR",
+    "SELF_ONLY",
+  ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -40,6 +85,8 @@ export default function PostVideoPage() {
       setError(null);
     }
   };
+
+  const isPromotionalContent = brandContentToggle || brandOrganicToggle;
 
   const uploadVideo = async (isDraft: boolean) => {
     setError(null);
@@ -74,6 +121,7 @@ export default function PostVideoPage() {
             disable_stitch: disableStitch,
             disable_comment: disableComment,
             brand_content_toggle: brandContentToggle,
+            brand_organic_toggle: brandOrganicToggle,
             video_size: file.size,
           };
 
@@ -196,10 +244,11 @@ export default function PostVideoPage() {
     setFile(null);
     setTitle("");
     setPrivacyLevel("");
-    setDisableDuet(false);
-    setDisableStitch(false);
-    setDisableComment(false);
+    setDisableDuet(true);
+    setDisableStitch(true);
+    setDisableComment(true);
     setBrandContentToggle(false);
+    setBrandOrganicToggle(false);
     setStatus("idle");
     setStatusMessage("");
     setUploadProgress(0);
@@ -366,13 +415,17 @@ export default function PostVideoPage() {
             <select
               value={privacyLevel}
               onChange={(e) => setPrivacyLevel(e.target.value as PrivacyLevel)}
-              className="w-full px-4 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white"
+              disabled={creatorLoading}
+              className="w-full px-4 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white disabled:opacity-50"
             >
-              <option value="">Select privacy level...</option>
-              <option value="PUBLIC_TO_EVERYONE">Public</option>
-              <option value="MUTUAL_FOLLOW_FRIENDS">Friends</option>
-              <option value="FOLLOWER_OF_CREATOR">Followers</option>
-              <option value="SELF_ONLY">Only Me</option>
+              <option value="">
+                {creatorLoading ? "Loading privacy options..." : "Select privacy level..."}
+              </option>
+              {privacyOptions.map((level) => (
+                <option key={level} value={level}>
+                  {PRIVACY_LABELS[level] || level}
+                </option>
+              ))}
             </select>
             <p className="text-xs text-neutral-500 mt-1">
               Note: Sandbox/unaudited apps can only post as &quot;Only
@@ -391,27 +444,45 @@ export default function PostVideoPage() {
                   type="checkbox"
                   checked={!disableComment}
                   onChange={(e) => setDisableComment(!e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300"
+                  disabled={creatorInfo?.comment_disabled}
+                  className="w-4 h-4 rounded border-neutral-300 disabled:opacity-50"
                 />
-                <span className="text-sm">Allow comments</span>
+                <span className="text-sm">
+                  Allow comments
+                  {creatorInfo?.comment_disabled && (
+                    <span className="text-neutral-400 ml-1">(disabled by creator settings)</span>
+                  )}
+                </span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={!disableDuet}
                   onChange={(e) => setDisableDuet(!e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300"
+                  disabled={creatorInfo?.duet_disabled}
+                  className="w-4 h-4 rounded border-neutral-300 disabled:opacity-50"
                 />
-                <span className="text-sm">Allow duets</span>
+                <span className="text-sm">
+                  Allow duets
+                  {creatorInfo?.duet_disabled && (
+                    <span className="text-neutral-400 ml-1">(disabled by creator settings)</span>
+                  )}
+                </span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={!disableStitch}
                   onChange={(e) => setDisableStitch(!e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300"
+                  disabled={creatorInfo?.stitch_disabled}
+                  className="w-4 h-4 rounded border-neutral-300 disabled:opacity-50"
                 />
-                <span className="text-sm">Allow stitches</span>
+                <span className="text-sm">
+                  Allow stitches
+                  {creatorInfo?.stitch_disabled && (
+                    <span className="text-neutral-400 ml-1">(disabled by creator settings)</span>
+                  )}
+                </span>
               </label>
             </div>
           </div>
@@ -421,17 +492,65 @@ export default function PostVideoPage() {
             <label className="block text-sm font-medium mb-3">
               Commercial Content Disclosure
             </label>
-            <label className="flex items-center gap-3 cursor-pointer">
+            <p className="text-xs text-neutral-500 mb-3">
+              Let others know this video promotes goods or services in exchange
+              for something of value. Your video could promote yourself, a third
+              party, or both.
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer mb-3">
               <input
                 type="checkbox"
-                checked={brandContentToggle}
-                onChange={(e) => setBrandContentToggle(e.target.checked)}
+                checked={isPromotionalContent}
+                onChange={(e) => {
+                  if (!e.target.checked) {
+                    setBrandContentToggle(false);
+                    setBrandOrganicToggle(false);
+                  }
+                }}
+                readOnly={isPromotionalContent}
                 className="w-4 h-4 rounded border-neutral-300"
               />
               <span className="text-sm">
                 This video contains promotional content
               </span>
             </label>
+
+            {isPromotionalContent && (
+              <div className="ml-7 space-y-3 border-l-2 border-neutral-200 dark:border-neutral-700 pl-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={brandOrganicToggle}
+                    onChange={(e) => setBrandOrganicToggle(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-300"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Your brand</span>
+                    <p className="text-xs text-neutral-500">
+                      You are promoting yourself or your own business.
+                    </p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={brandContentToggle}
+                    onChange={(e) => setBrandContentToggle(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-300"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Branded content</span>
+                    <p className="text-xs text-neutral-500">
+                      You are promoting another brand or a third party.
+                    </p>
+                  </div>
+                </label>
+                <p className="text-xs text-neutral-500 mt-2">
+                  By posting, you agree to TikTok&apos;s{" "}
+                  <span className="font-medium">Branded Content Policy</span>.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Music Usage Confirmation */}

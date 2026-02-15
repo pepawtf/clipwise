@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { PrivacyLevel } from "@/lib/types";
+import type { PrivacyLevel, TikTokCreatorInfo } from "@/lib/types";
 
 type PostStatus =
   | "idle"
@@ -17,6 +17,13 @@ interface ImageItem {
   preview: string;
 }
 
+const PRIVACY_LABELS: Record<PrivacyLevel, string> = {
+  PUBLIC_TO_EVERYONE: "Public",
+  MUTUAL_FOLLOW_FRIENDS: "Friends",
+  FOLLOWER_OF_CREATOR: "Followers",
+  SELF_ONLY: "Only Me",
+};
+
 export default function CarouselPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,13 +33,48 @@ export default function CarouselPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel | "">("");
-  const [disableComment, setDisableComment] = useState(false);
+  const [disableComment, setDisableComment] = useState(true);
   const [autoAddMusic, setAutoAddMusic] = useState(true);
   const [brandContentToggle, setBrandContentToggle] = useState(false);
+  const [brandOrganicToggle, setBrandOrganicToggle] = useState(false);
   const [status, setStatus] = useState<PostStatus>("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Creator info from TikTok API
+  const [creatorInfo, setCreatorInfo] = useState<TikTokCreatorInfo | null>(null);
+  const [creatorLoading, setCreatorLoading] = useState(true);
+
+  const fetchCreatorInfo = useCallback(async () => {
+    try {
+      const res = await fetch("/api/creator");
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to fetch creator info");
+      const data: TikTokCreatorInfo = await res.json();
+      setCreatorInfo(data);
+
+      if (data.comment_disabled) setDisableComment(true);
+    } catch {
+      // Non-critical
+    } finally {
+      setCreatorLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    fetchCreatorInfo();
+  }, [fetchCreatorInfo]);
+
+  const privacyOptions: PrivacyLevel[] = creatorInfo?.privacy_level_options || [
+    "PUBLIC_TO_EVERYONE",
+    "MUTUAL_FOLLOW_FRIENDS",
+    "FOLLOWER_OF_CREATOR",
+    "SELF_ONLY",
+  ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -72,6 +114,8 @@ export default function CarouselPage() {
     if (coverIndex >= images.length - 1) setCoverIndex(0);
     if (coverIndex === index) setCoverIndex(0);
   };
+
+  const isPromotionalContent = brandContentToggle || brandOrganicToggle;
 
   const postCarousel = async (isDraft: boolean) => {
     setError(null);
@@ -138,6 +182,7 @@ export default function CarouselPage() {
         post_mode: isDraft ? "MEDIA_UPLOAD" : "DIRECT_POST",
         auto_add_music: autoAddMusic,
         brand_content_toggle: brandContentToggle,
+        brand_organic_toggle: brandOrganicToggle,
         disable_comment: disableComment,
       };
 
@@ -224,9 +269,10 @@ export default function CarouselPage() {
     setTitle("");
     setDescription("");
     setPrivacyLevel("");
-    setDisableComment(false);
+    setDisableComment(true);
     setAutoAddMusic(true);
     setBrandContentToggle(false);
+    setBrandOrganicToggle(false);
     setStatus("idle");
     setStatusMessage("");
     setUploadProgress(0);
@@ -447,13 +493,17 @@ export default function CarouselPage() {
             <select
               value={privacyLevel}
               onChange={(e) => setPrivacyLevel(e.target.value as PrivacyLevel)}
-              className="w-full px-4 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white"
+              disabled={creatorLoading}
+              className="w-full px-4 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white disabled:opacity-50"
             >
-              <option value="">Select privacy level...</option>
-              <option value="PUBLIC_TO_EVERYONE">Public</option>
-              <option value="MUTUAL_FOLLOW_FRIENDS">Friends</option>
-              <option value="FOLLOWER_OF_CREATOR">Followers</option>
-              <option value="SELF_ONLY">Only Me</option>
+              <option value="">
+                {creatorLoading ? "Loading privacy options..." : "Select privacy level..."}
+              </option>
+              {privacyOptions.map((level) => (
+                <option key={level} value={level}>
+                  {PRIVACY_LABELS[level] || level}
+                </option>
+              ))}
             </select>
             <p className="text-xs text-neutral-500 mt-1">
               Note: Sandbox/unaudited apps can only post as &quot;Only
@@ -470,9 +520,15 @@ export default function CarouselPage() {
                   type="checkbox"
                   checked={!disableComment}
                   onChange={(e) => setDisableComment(!e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300"
+                  disabled={creatorInfo?.comment_disabled}
+                  className="w-4 h-4 rounded border-neutral-300 disabled:opacity-50"
                 />
-                <span className="text-sm">Allow comments</span>
+                <span className="text-sm">
+                  Allow comments
+                  {creatorInfo?.comment_disabled && (
+                    <span className="text-neutral-400 ml-1">(disabled by creator settings)</span>
+                  )}
+                </span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -483,18 +539,73 @@ export default function CarouselPage() {
                 />
                 <span className="text-sm">Auto-add background music</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={brandContentToggle}
-                  onChange={(e) => setBrandContentToggle(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300"
-                />
-                <span className="text-sm">
-                  This carousel contains promotional content
-                </span>
-              </label>
             </div>
+          </div>
+
+          {/* Commercial Content Disclosure */}
+          <div>
+            <label className="block text-sm font-medium mb-3">
+              Commercial Content Disclosure
+            </label>
+            <p className="text-xs text-neutral-500 mb-3">
+              Let others know this carousel promotes goods or services in exchange
+              for something of value. Your carousel could promote yourself, a third
+              party, or both.
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer mb-3">
+              <input
+                type="checkbox"
+                checked={isPromotionalContent}
+                onChange={(e) => {
+                  if (!e.target.checked) {
+                    setBrandContentToggle(false);
+                    setBrandOrganicToggle(false);
+                  }
+                }}
+                readOnly={isPromotionalContent}
+                className="w-4 h-4 rounded border-neutral-300"
+              />
+              <span className="text-sm">
+                This carousel contains promotional content
+              </span>
+            </label>
+
+            {isPromotionalContent && (
+              <div className="ml-7 space-y-3 border-l-2 border-neutral-200 dark:border-neutral-700 pl-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={brandOrganicToggle}
+                    onChange={(e) => setBrandOrganicToggle(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-300"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Your brand</span>
+                    <p className="text-xs text-neutral-500">
+                      You are promoting yourself or your own business.
+                    </p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={brandContentToggle}
+                    onChange={(e) => setBrandContentToggle(e.target.checked)}
+                    className="w-4 h-4 rounded border-neutral-300"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Branded content</span>
+                    <p className="text-xs text-neutral-500">
+                      You are promoting another brand or a third party.
+                    </p>
+                  </div>
+                </label>
+                <p className="text-xs text-neutral-500 mt-2">
+                  By posting, you agree to TikTok&apos;s{" "}
+                  <span className="font-medium">Branded Content Policy</span>.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Submit Buttons */}

@@ -7,6 +7,7 @@ import type {
   TikTokPostStatusResponse,
   PostVideoOptions,
   PostPhotoOptions,
+  TikTokCreatorInfoResponse,
 } from "./types";
 
 const TIKTOK_AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/";
@@ -236,6 +237,30 @@ export async function queryVideos(
 
   if (!res.ok) {
     throw new Error(`Failed to query videos: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Get creator info for posting (privacy levels, limits, etc.)
+ */
+export async function getCreatorInfo(
+  accessToken: string
+): Promise<TikTokCreatorInfoResponse> {
+  const res = await fetch(
+    `${TIKTOK_API_BASE}/post/publish/creator_info/query/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch creator info: ${res.statusText}`);
   }
 
   return res.json();

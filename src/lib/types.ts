@@ -143,6 +143,23 @@ export interface PostPhotoOptions {
   postMode: "DIRECT_POST" | "MEDIA_UPLOAD";
 }
 
+// Creator info response from /post/publish/creator_info/query/
+export interface TikTokCreatorInfo {
+  creator_avatar_url: string;
+  creator_username: string;
+  creator_nickname: string;
+  privacy_level_options: PrivacyLevel[];
+  comment_disabled: boolean;
+  duet_disabled: boolean;
+  stitch_disabled: boolean;
+  max_video_post_duration_sec: number;
+}
+
+export interface TikTokCreatorInfoResponse {
+  data: TikTokCreatorInfo;
+  error: TikTokError;
+}
+
 // Session data stored in cookies
 export interface SessionData {
   accessToken: string;
