@@ -126,8 +126,14 @@ export default function CarouselPage() {
           : "Publishing carousel to TikTok..."
       );
 
+      // Convert blob URLs to clipwise.tech proxy URLs (TikTok requires verified domain)
+      const proxyUrls = urls.map(
+        (u) =>
+          `${window.location.origin}/api/media?url=${encodeURIComponent(u)}`
+      );
+
       const postBody: Record<string, unknown> = {
-        photo_images: urls,
+        photo_images: proxyUrls,
         photo_cover_index: coverIndex,
         post_mode: isDraft ? "MEDIA_UPLOAD" : "DIRECT_POST",
         auto_add_music: autoAddMusic,
