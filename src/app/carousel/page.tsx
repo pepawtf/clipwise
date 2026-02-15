@@ -86,29 +86,36 @@ export default function CarouselPage() {
     }
 
     try {
-      // Step 1: Upload images to Vercel Blob
+      // Step 1: Upload images one by one to Vercel Blob
       setStatus("uploading_images");
-      setStatusMessage("Uploading images...");
+      const urls: string[] = [];
 
-      const formData = new FormData();
-      images.forEach((img) => formData.append("files", img.file));
+      for (let i = 0; i < images.length; i++) {
+        setStatusMessage(`Uploading image ${i + 1} of ${images.length}...`);
+        setUploadProgress(Math.round((i / images.length) * 100));
 
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+        const formData = new FormData();
+        formData.append("file", images[i].file);
 
-      if (uploadRes.status === 401) {
-        router.push("/login");
-        return;
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.status === 401) {
+          router.push("/login");
+          return;
+        }
+
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json();
+          throw new Error(data.error || `Failed to upload image ${i + 1}`);
+        }
+
+        const { url } = await uploadRes.json();
+        urls.push(url);
       }
 
-      if (!uploadRes.ok) {
-        const data = await uploadRes.json();
-        throw new Error(data.error || "Failed to upload images");
-      }
-
-      const { urls } = await uploadRes.json();
       setUploadProgress(100);
 
       // Step 2: Send to TikTok

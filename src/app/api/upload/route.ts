@@ -14,47 +14,34 @@ export async function POST(request: NextRequest) {
 
   try {
     const form = await request.formData();
-    const files = form.getAll("files") as File[];
+    const file = form.get("file") as File;
 
-    if (!files.length) {
-      return NextResponse.json({ error: "No files provided" }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (files.length > 35) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "Maximum 35 images allowed" },
+        { error: `Invalid file type: ${file.type}. Only JPEG and WEBP are allowed.` },
         { status: 400 }
       );
     }
 
-    const urls: string[] = [];
-
-    for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        return NextResponse.json(
-          { error: `Invalid file type: ${file.type}. Only JPEG and WEBP are allowed.` },
-          { status: 400 }
-        );
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { error: `File "${file.name}" exceeds 4MB limit` },
-          { status: 400 }
-        );
-      }
-
-      const blob = await put(`carousel/${file.name}`, file, {
-        access: "public",
-        addRandomSuffix: true,
-      });
-
-      urls.push(blob.url);
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File exceeds 4MB limit` },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ urls });
+    const blob = await put(`carousel/${file.name}`, file, {
+      access: "public",
+      addRandomSuffix: true,
+    });
+
+    return NextResponse.json({ url: blob.url });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to upload images";
+    const message = err instanceof Error ? err.message : "Failed to upload image";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
