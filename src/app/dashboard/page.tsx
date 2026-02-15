@@ -11,8 +11,17 @@ function formatNumber(num: number | undefined): string {
   return num.toString();
 }
 
+// Generate a gradient from video ID for visual variety
+function idToGradient(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const hue1 = Math.abs(hash) % 360;
+  const hue2 = (hue1 + 40) % 360;
+  return `linear-gradient(135deg, hsl(${hue1}, 60%, 30%), hsl(${hue2}, 50%, 20%))`;
+}
+
 function VideoCard({ video }: { video: TikTokVideo }) {
-  const [imgError, setImgError] = useState(false);
+  const isCarousel = video.duration === 0;
 
   return (
     <a
@@ -21,42 +30,32 @@ function VideoCard({ video }: { video: TikTokVideo }) {
       rel="noopener noreferrer"
       className="group relative block rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-900 aspect-[9/16]"
     >
-      {/* Thumbnail */}
-      {video.cover_image_url && !imgError ? (
-        <img
-          src={video.cover_image_url}
-          referrerPolicy="no-referrer"
-          alt={video.title || video.video_description || "Video"}
-          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <svg
-            className="w-12 h-12 text-neutral-300 dark:text-neutral-700"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-            />
+      {/* Gradient background placeholder */}
+      <div
+        className="absolute inset-0"
+        style={{ background: idToGradient(video.id) }}
+      />
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-40">
+        {isCarousel ? (
+          <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-        </div>
-      )}
+        ) : (
+          <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        )}
+      </div>
 
       {/* Gradient overlay at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
-      {/* Duration badge */}
-      {video.duration != null && (
-        <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
-          {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, "0")}
-        </span>
-      )}
+      {/* Duration / type badge */}
+      <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+        {isCarousel
+          ? "Photos"
+          : `${Math.floor((video.duration || 0) / 60)}:${((video.duration || 0) % 60).toString().padStart(2, "0")}`}
+      </span>
 
       {/* Bottom info overlay */}
       <div className="absolute inset-x-0 bottom-0 p-3 text-white">
