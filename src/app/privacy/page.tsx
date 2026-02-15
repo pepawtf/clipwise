@@ -121,10 +121,10 @@ export default function PrivacyPolicyPage() {
             If you have any questions about this Privacy Policy or our data
             practices, please contact us at:{" "}
             <a
-              href="mailto:privacy@example.com"
+              href="mailto:privacy@clipwise.tech"
               className="text-neutral-900 dark:text-white underline"
             >
-              privacy@example.com
+              privacy@clipwise.tech
             </a>
           </p>
         </section>

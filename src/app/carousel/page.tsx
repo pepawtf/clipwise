@@ -283,9 +283,32 @@ export default function CarouselPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-2xl font-bold mb-2">Post a Carousel</h1>
-      <p className="text-neutral-600 dark:text-neutral-400 mb-8">
+      <p className="text-neutral-600 dark:text-neutral-400 mb-4">
         Upload 2–35 images as a photo slideshow to TikTok.
       </p>
+
+      {/* Creator Identity */}
+      {creatorInfo && (
+        <div className="flex items-center gap-3 mb-8 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800">
+          {creatorInfo.creator_avatar_url && (
+            <img
+              src={creatorInfo.creator_avatar_url}
+              referrerPolicy="no-referrer"
+              alt={creatorInfo.creator_nickname}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          )}
+          <div>
+            <p className="text-sm font-medium">
+              Posting as{" "}
+              <span className="text-neutral-900 dark:text-white">
+                {creatorInfo.creator_nickname}
+              </span>
+            </p>
+            <p className="text-xs text-neutral-500">@{creatorInfo.creator_username}</p>
+          </div>
+        </div>
+      )}
 
       {/* Status Display */}
       {status !== "idle" && status !== "failed" && (
@@ -500,11 +523,21 @@ export default function CarouselPage() {
                 {creatorLoading ? "Loading privacy options..." : "Select privacy level..."}
               </option>
               {privacyOptions.map((level) => (
-                <option key={level} value={level}>
+                <option
+                  key={level}
+                  value={level}
+                  disabled={brandContentToggle && level === "SELF_ONLY"}
+                >
                   {PRIVACY_LABELS[level] || level}
+                  {brandContentToggle && level === "SELF_ONLY" ? " (unavailable for branded content)" : ""}
                 </option>
               ))}
             </select>
+            {brandContentToggle && privacyLevel === "SELF_ONLY" && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                Branded content cannot be set to private. Please select a different privacy level.
+              </p>
+            )}
             <p className="text-xs text-neutral-500 mt-1">
               Note: Sandbox/unaudited apps can only post as &quot;Only
               Me&quot; (private).
@@ -612,7 +645,7 @@ export default function CarouselPage() {
           <div className="flex gap-3">
             <button
               onClick={() => postCarousel(false)}
-              disabled={images.length < 2 || !privacyLevel}
+              disabled={images.length < 2 || !privacyLevel || (brandContentToggle && privacyLevel === "SELF_ONLY")}
               className="flex-1 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Post Carousel

@@ -128,10 +128,10 @@ export default function TermsOfServicePage() {
           <p className="text-neutral-600 dark:text-neutral-400">
             For questions about these Terms of Service, please contact us at:{" "}
             <a
-              href="mailto:support@example.com"
+              href="mailto:support@clipwise.tech"
               className="text-neutral-900 dark:text-white underline"
             >
-              support@example.com
+              support@clipwise.tech
             </a>
           </p>
         </section>
