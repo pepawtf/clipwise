@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import Nav from "./components/nav";
 import "./globals.css";
@@ -37,19 +38,13 @@ export default function RootLayout({
               href="/"
               className="flex items-center gap-2 font-bold text-lg"
             >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 28 28"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect width="28" height="28" rx="6" fill="#000" />
-                <path
-                  d="M19.5 8.5C18.12 8.5 16.92 7.88 16.12 6.93C15.32 5.98 14.9 4.78 14.9 3.5H12.1V17.3C12.1 18.63 11.02 19.7 9.7 19.7C8.37 19.7 7.3 18.63 7.3 17.3C7.3 15.97 8.37 14.9 9.7 14.9C9.96 14.9 10.2 14.94 10.43 15.01V12.14C10.19 12.1 9.95 12.08 9.7 12.08C6.83 12.08 4.5 14.41 4.5 17.28C4.5 20.15 6.83 22.48 9.7 22.48C12.57 22.48 14.9 20.15 14.9 17.28V10.17C16.06 11.08 17.51 11.62 19.08 11.62V8.82C19.22 8.82 19.36 8.5 19.5 8.5Z"
-                  fill="white"
-                />
-              </svg>
+              <Image
+                src="/icon.png"
+                alt="Clipwise"
+                width={28}
+                height={28}
+                className="rounded-md"
+              />
               <span>Clipwise</span>
             </Link>
 
