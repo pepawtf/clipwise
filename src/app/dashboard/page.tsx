@@ -22,6 +22,7 @@ function idToGradient(id: string): string {
 
 function VideoCard({ video }: { video: TikTokVideo }) {
   const isCarousel = video.duration === 0;
+  const [imgError, setImgError] = useState(false);
 
   return (
     <a
@@ -30,22 +31,34 @@ function VideoCard({ video }: { video: TikTokVideo }) {
       rel="noopener noreferrer"
       className="group relative block rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-900 aspect-[9/16]"
     >
-      {/* Gradient background placeholder */}
-      <div
-        className="absolute inset-0"
-        style={{ background: idToGradient(video.id) }}
-      />
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-40">
-        {isCarousel ? (
-          <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        ) : (
-          <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        )}
-      </div>
+      {/* Cover image or gradient fallback */}
+      {video.cover_image_url && !imgError ? (
+        <img
+          src={video.cover_image_url}
+          referrerPolicy="no-referrer"
+          alt={video.title || video.video_description || "Video thumbnail"}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <>
+          <div
+            className="absolute inset-0"
+            style={{ background: idToGradient(video.id) }}
+          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-40">
+            {isCarousel ? (
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            ) : (
+              <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Gradient overlay at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />

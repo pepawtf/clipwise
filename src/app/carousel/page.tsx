@@ -538,10 +538,6 @@ export default function CarouselPage() {
                 Branded content cannot be set to private. Please select a different privacy level.
               </p>
             )}
-            <p className="text-xs text-neutral-500 mt-1">
-              Note: Sandbox/unaudited apps can only post as &quot;Only
-              Me&quot; (private).
-            </p>
           </div>
 
           {/* Settings */}
