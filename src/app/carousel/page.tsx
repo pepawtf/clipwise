@@ -35,12 +35,15 @@ export default function CarouselPage() {
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel | "">("");
   const [disableComment, setDisableComment] = useState(true);
   const [autoAddMusic, setAutoAddMusic] = useState(true);
+  const [showCommercialOptions, setShowCommercialOptions] = useState(false);
   const [brandContentToggle, setBrandContentToggle] = useState(false);
   const [brandOrganicToggle, setBrandOrganicToggle] = useState(false);
   const [status, setStatus] = useState<PostStatus>("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState(false);
 
   // Creator info from TikTok API
   const [creatorInfo, setCreatorInfo] = useState<TikTokCreatorInfo | null>(null);
@@ -116,6 +119,9 @@ export default function CarouselPage() {
   };
 
   const isPromotionalContent = brandContentToggle || brandOrganicToggle;
+
+  // Disable publish when commercial options are shown but none selected
+  const commercialIncomplete = showCommercialOptions && !brandContentToggle && !brandOrganicToggle;
 
   const postCarousel = async (isDraft: boolean) => {
     setError(null);
@@ -262,6 +268,21 @@ export default function CarouselPage() {
     }
   };
 
+  const handlePost = () => {
+    setPendingDraft(false);
+    setShowConfirmDialog(true);
+  };
+
+  const handleDraft = () => {
+    setPendingDraft(true);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmPost = async () => {
+    setShowConfirmDialog(false);
+    await postCarousel(pendingDraft);
+  };
+
   const resetForm = () => {
     images.forEach((img) => URL.revokeObjectURL(img.preview));
     setImages([]);
@@ -271,14 +292,22 @@ export default function CarouselPage() {
     setPrivacyLevel("");
     setDisableComment(true);
     setAutoAddMusic(true);
+    setShowCommercialOptions(false);
     setBrandContentToggle(false);
     setBrandOrganicToggle(false);
     setStatus("idle");
     setStatusMessage("");
     setUploadProgress(0);
     setError(null);
+    setShowConfirmDialog(false);
+    setPendingDraft(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  // Dynamic compliance declaration text
+  const complianceText = brandContentToggle
+    ? <>By posting, you agree to TikTok&apos;s <span className="font-medium">Branded Content Policy</span> and <span className="font-medium">Music Usage Confirmation</span>.</>
+    : <>By posting, you agree to TikTok&apos;s <span className="font-medium">Music Usage Confirmation</span>. Ensure you have the rights to any music used in your carousel.</>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -306,6 +335,34 @@ export default function CarouselPage() {
               </span>
             </p>
             <p className="text-xs text-neutral-500">@{creatorInfo.creator_username}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-3">
+              {pendingDraft ? "Save as Draft?" : "Post to TikTok?"}
+            </h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+              Your content will be uploaded to TikTok. It may take a few minutes to process and appear on your profile. Continue?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmDialog(false)}
+                className="flex-1 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPost}
+                className="flex-1 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors"
+              >
+                {pendingDraft ? "Save as Draft" : "Post"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -573,7 +630,10 @@ export default function CarouselPage() {
 
           {/* Commercial Content Disclosure */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label
+              className="block text-sm font-medium mb-3"
+              title="You need to indicate if your content promotes yourself, a third party, or both"
+            >
               Commercial Content Disclosure
             </label>
             <p className="text-xs text-neutral-500 mb-3">
@@ -584,14 +644,14 @@ export default function CarouselPage() {
             <label className="flex items-center gap-3 cursor-pointer mb-3">
               <input
                 type="checkbox"
-                checked={isPromotionalContent}
+                checked={showCommercialOptions}
                 onChange={(e) => {
+                  setShowCommercialOptions(e.target.checked);
                   if (!e.target.checked) {
                     setBrandContentToggle(false);
                     setBrandOrganicToggle(false);
                   }
                 }}
-                readOnly={isPromotionalContent}
                 className="w-4 h-4 rounded border-neutral-300"
               />
               <span className="text-sm">
@@ -599,7 +659,7 @@ export default function CarouselPage() {
               </span>
             </label>
 
-            {isPromotionalContent && (
+            {showCommercialOptions && (
               <div className="ml-7 space-y-3 border-l-2 border-neutral-200 dark:border-neutral-700 pl-4">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -629,31 +689,59 @@ export default function CarouselPage() {
                     </p>
                   </div>
                 </label>
-                <p className="text-xs text-neutral-500 mt-2">
-                  By posting, you agree to TikTok&apos;s{" "}
-                  <span className="font-medium">Branded Content Policy</span>.
-                </p>
+
+                {/* Label Preview */}
+                {isPromotionalContent && (
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                      {brandContentToggle
+                        ? <>Your carousel will be labeled as <span className="font-medium">&quot;Paid partnership&quot;</span></>
+                        : <>Your carousel will be labeled as <span className="font-medium">&quot;Promotional content&quot;</span></>
+                      }
+                    </p>
+                  </div>
+                )}
+
+                {/* Warning if neither sub-option selected */}
+                {!isPromotionalContent && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Please select at least one option below to continue.
+                  </p>
+                )}
               </div>
             )}
+          </div>
+
+          {/* Compliance Declaration */}
+          <div className="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-xl">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400">
+              {complianceText}
+            </p>
           </div>
 
           {/* Submit Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={() => postCarousel(false)}
-              disabled={images.length < 2 || !privacyLevel || (brandContentToggle && privacyLevel === "SELF_ONLY")}
+              onClick={handlePost}
+              disabled={images.length < 2 || !privacyLevel || (brandContentToggle && privacyLevel === "SELF_ONLY") || commercialIncomplete}
               className="flex-1 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Post Carousel
             </button>
             <button
-              onClick={() => postCarousel(true)}
+              onClick={handleDraft}
               disabled={images.length < 2}
               className="flex-1 py-3 border border-neutral-300 dark:border-neutral-700 rounded-xl font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save as Draft
             </button>
           </div>
+
+          {/* Processing Notice */}
+          <p className="text-xs text-neutral-500 text-center">
+            Note: After posting, your content may take a few minutes to be processed and appear on your TikTok profile.
+          </p>
+
           <p className="text-xs text-neutral-500 text-center">
             Drafts are sent to your TikTok inbox — open TikTok to edit and
             publish.
