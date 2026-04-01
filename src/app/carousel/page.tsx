@@ -306,8 +306,8 @@ export default function CarouselPage() {
 
   // Dynamic compliance declaration text
   const complianceText = brandContentToggle
-    ? <>By posting, you agree to TikTok&apos;s <span className="font-medium">Branded Content Policy</span> and <span className="font-medium">Music Usage Confirmation</span>.</>
-    : <>By posting, you agree to TikTok&apos;s <span className="font-medium">Music Usage Confirmation</span>. Ensure you have the rights to any music used in your carousel.</>;
+    ? <>By posting, you agree to TikTok&apos;s <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-neutral-900 dark:hover:text-white">Branded Content Policy</a> and <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-neutral-900 dark:hover:text-white">Music Usage Confirmation</a>.</>
+    : <>By posting, you agree to TikTok&apos;s <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-neutral-900 dark:hover:text-white">Music Usage Confirmation</a>. Ensure you have the rights to any music used in your carousel.</>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -719,6 +719,23 @@ export default function CarouselPage() {
             </p>
           </div>
 
+          {/* Processing Notice */}
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <div className="flex gap-3">
+              <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  After publishing, your content may take a few minutes to be processed and appear on your TikTok profile.
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Drafts are sent to your TikTok inbox — open TikTok to edit and publish.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Submit Buttons */}
           <div className="flex gap-3">
             <button
@@ -736,16 +753,6 @@ export default function CarouselPage() {
               Save as Draft
             </button>
           </div>
-
-          {/* Processing Notice */}
-          <p className="text-xs text-neutral-500 text-center">
-            Note: After posting, your content may take a few minutes to be processed and appear on your TikTok profile.
-          </p>
-
-          <p className="text-xs text-neutral-500 text-center">
-            Drafts are sent to your TikTok inbox — open TikTok to edit and
-            publish.
-          </p>
         </div>
       )}
     </div>
