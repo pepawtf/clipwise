@@ -14,7 +14,10 @@ export async function GET() {
 
     if (result.error?.code && result.error.code !== "ok") {
       return NextResponse.json(
-        { error: result.error.message || "Failed to fetch creator info" },
+        {
+          error: result.error.message || "Failed to fetch creator info",
+          code: result.error.code,
+        },
         { status: 400 }
       );
     }
@@ -22,6 +25,6 @@ export async function GET() {
     return NextResponse.json(result.data);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch creator info";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message, code: "network_error" }, { status: 500 });
   }
 }

@@ -3,6 +3,13 @@ import { getSession } from "@/lib/auth";
 import { initVideoPost } from "@/lib/tiktok";
 import type { PostVideoOptions, PrivacyLevel } from "@/lib/types";
 
+const VALID_PRIVACY_LEVELS: PrivacyLevel[] = [
+  "PUBLIC_TO_EVERYONE",
+  "MUTUAL_FOLLOW_FRIENDS",
+  "FOLLOWER_OF_CREATOR",
+  "SELF_ONLY",
+];
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
 
@@ -13,9 +20,16 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    if (!body.privacy_level || !VALID_PRIVACY_LEVELS.includes(body.privacy_level)) {
+      return NextResponse.json(
+        { error: "privacy_level is required and must be one of: " + VALID_PRIVACY_LEVELS.join(", ") },
+        { status: 400 }
+      );
+    }
+
     const options: PostVideoOptions = {
       title: body.title || "",
-      privacyLevel: (body.privacy_level as PrivacyLevel) || "SELF_ONLY",
+      privacyLevel: body.privacy_level as PrivacyLevel,
       disableDuet: body.disable_duet ?? false,
       disableStitch: body.disable_stitch ?? false,
       disableComment: body.disable_comment ?? false,

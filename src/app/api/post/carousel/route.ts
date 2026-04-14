@@ -4,6 +4,13 @@ import { getSession } from "@/lib/auth";
 import { initPhotoPost } from "@/lib/tiktok";
 import type { PostPhotoOptions, PrivacyLevel } from "@/lib/types";
 
+const VALID_PRIVACY_LEVELS: PrivacyLevel[] = [
+  "PUBLIC_TO_EVERYONE",
+  "MUTUAL_FOLLOW_FRIENDS",
+  "FOLLOWER_OF_CREATOR",
+  "SELF_ONLY",
+];
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
 
@@ -30,6 +37,15 @@ export async function POST(request: NextRequest) {
     }
 
     const postMode = body.post_mode === "MEDIA_UPLOAD" ? "MEDIA_UPLOAD" : "DIRECT_POST";
+
+    if (postMode === "DIRECT_POST") {
+      if (!body.privacy_level || !VALID_PRIVACY_LEVELS.includes(body.privacy_level)) {
+        return NextResponse.json(
+          { error: "privacy_level is required for direct posts and must be one of: " + VALID_PRIVACY_LEVELS.join(", ") },
+          { status: 400 }
+        );
+      }
+    }
 
     const options: PostPhotoOptions = {
       title: body.title || undefined,

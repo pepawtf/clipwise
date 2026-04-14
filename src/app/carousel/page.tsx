@@ -48,21 +48,35 @@ export default function CarouselPage() {
   // Creator info from TikTok API
   const [creatorInfo, setCreatorInfo] = useState<TikTokCreatorInfo | null>(null);
   const [creatorLoading, setCreatorLoading] = useState(true);
+  const [creatorError, setCreatorError] = useState<{ message: string; code?: string } | null>(null);
 
   const fetchCreatorInfo = useCallback(async () => {
+    setCreatorLoading(true);
+    setCreatorError(null);
     try {
-      const res = await fetch("/api/creator");
+      const res = await fetch("/api/creator", { cache: "no-store" });
       if (res.status === 401) {
         router.push("/login");
         return;
       }
-      if (!res.ok) throw new Error("Failed to fetch creator info");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCreatorError({
+          message: data.error || "Failed to fetch creator info",
+          code: data.code,
+        });
+        setCreatorInfo(null);
+        return;
+      }
       const data: TikTokCreatorInfo = await res.json();
       setCreatorInfo(data);
 
       if (data.comment_disabled) setDisableComment(true);
-    } catch {
-      // Non-critical
+    } catch (err) {
+      setCreatorError({
+        message: err instanceof Error ? err.message : "Failed to fetch creator info",
+      });
+      setCreatorInfo(null);
     } finally {
       setCreatorLoading(false);
     }
@@ -72,12 +86,7 @@ export default function CarouselPage() {
     fetchCreatorInfo();
   }, [fetchCreatorInfo]);
 
-  const privacyOptions: PrivacyLevel[] = creatorInfo?.privacy_level_options || [
-    "PUBLIC_TO_EVERYONE",
-    "MUTUAL_FOLLOW_FRIENDS",
-    "FOLLOWER_OF_CREATOR",
-    "SELF_ONLY",
-  ];
+  const privacyOptions: PrivacyLevel[] = creatorInfo?.privacy_level_options ?? [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -316,6 +325,35 @@ export default function CarouselPage() {
         Upload 2–35 images as a photo slideshow to TikTok.
       </p>
 
+      {/* Creator info loading */}
+      {creatorLoading && (
+        <div className="mb-6 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Loading your TikTok account info…
+          </p>
+        </div>
+      )}
+
+      {/* Creator info blocking error */}
+      {creatorError && !creatorLoading && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+          <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">
+            Posting is not available right now
+          </p>
+          <p className="text-sm text-red-700 dark:text-red-400">
+            {creatorError.message}
+            {creatorError.code ? ` (${creatorError.code})` : ""}
+          </p>
+          <button
+            onClick={fetchCreatorInfo}
+            className="mt-3 text-sm underline text-red-600 dark:text-red-400"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {/* Creator Identity */}
       {creatorInfo && (
         <div className="flex items-center gap-3 mb-8 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800">
@@ -430,7 +468,7 @@ export default function CarouselPage() {
       )}
 
       {/* Form */}
-      {(status === "idle" || status === "failed") && (
+      {(status === "idle" || status === "failed") && creatorInfo && (
         <div className="space-y-6">
           {/* Image Upload */}
           <div>
@@ -586,13 +624,12 @@ export default function CarouselPage() {
                   disabled={brandContentToggle && level === "SELF_ONLY"}
                 >
                   {PRIVACY_LABELS[level] || level}
-                  {brandContentToggle && level === "SELF_ONLY" ? " (unavailable for branded content)" : ""}
                 </option>
               ))}
             </select>
-            {brandContentToggle && privacyLevel === "SELF_ONLY" && (
+            {brandContentToggle && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                Branded content cannot be set to private. Please select a different privacy level.
+                Branded content visibility cannot be set to private.
               </p>
             )}
           </div>
@@ -630,10 +667,7 @@ export default function CarouselPage() {
 
           {/* Commercial Content Disclosure */}
           <div>
-            <label
-              className="block text-sm font-medium mb-3"
-              title="You need to indicate if your content promotes yourself, a third party, or both"
-            >
+            <label className="block text-sm font-medium mb-3">
               Commercial Content Disclosure
             </label>
             <p className="text-xs text-neutral-500 mb-3">
@@ -705,7 +739,7 @@ export default function CarouselPage() {
                 {/* Warning if neither sub-option selected */}
                 {!isPromotionalContent && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Please select at least one option below to continue.
+                    You need to indicate if your content promotes yourself, a third party, or both.
                   </p>
                 )}
               </div>
@@ -741,6 +775,7 @@ export default function CarouselPage() {
             <button
               onClick={handlePost}
               disabled={images.length < 2 || !privacyLevel || (brandContentToggle && privacyLevel === "SELF_ONLY") || commercialIncomplete}
+              title={commercialIncomplete ? "You need to indicate if your content promotes yourself, a third party, or both." : undefined}
               className="flex-1 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Post Carousel
