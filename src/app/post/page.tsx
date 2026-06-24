@@ -19,6 +19,21 @@ const PRIVACY_LABELS: Record<PrivacyLevel, string> = {
   SELF_ONLY: "Only Me",
 };
 
+function friendlyPostError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes("spam_risk_too_many_posts") ||
+    lower.includes("reached_active_user_cap") ||
+    lower.includes("rate_limit")
+  ) {
+    return "You've reached TikTok's posting limit for now. Please wait a while and try again later.";
+  }
+  if (lower.includes("spam_risk_user_banned_from_posting")) {
+    return "This TikTok account is temporarily restricted from posting. Please try again later.";
+  }
+  return raw;
+}
+
 export default function PostVideoPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -278,7 +293,7 @@ export default function PostVideoPage() {
       setStatus("complete");
     } catch (err) {
       setStatus("failed");
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(friendlyPostError(err instanceof Error ? err.message : "An error occurred"));
       setStatusMessage("");
     }
   };
@@ -673,31 +688,41 @@ export default function PostVideoPage() {
 
           {/* Commercial Content Disclosure */}
           <div>
-            <label className="block text-sm font-medium mb-3">
-              Commercial Content Disclosure
-            </label>
-            <p className="text-xs text-neutral-500 mb-3">
-              Let others know this video promotes goods or services in exchange
-              for something of value. Your video could promote yourself, a third
-              party, or both.
-            </p>
-            <label className="flex items-center gap-3 cursor-pointer mb-3">
-              <input
-                type="checkbox"
-                checked={showCommercialOptions}
-                onChange={(e) => {
-                  setShowCommercialOptions(e.target.checked);
-                  if (!e.target.checked) {
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <label htmlFor="disclose-toggle" className="text-sm font-medium">
+                Disclose video content
+              </label>
+              <button
+                id="disclose-toggle"
+                type="button"
+                role="switch"
+                aria-checked={showCommercialOptions}
+                onClick={() => {
+                  const next = !showCommercialOptions;
+                  setShowCommercialOptions(next);
+                  if (!next) {
                     setBrandContentToggle(false);
                     setBrandOrganicToggle(false);
                   }
                 }}
-                className="w-4 h-4 rounded border-neutral-300"
-              />
-              <span className="text-sm">
-                This video contains promotional content
-              </span>
-            </label>
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+                  showCommercialOptions
+                    ? "bg-neutral-900 dark:bg-white"
+                    : "bg-neutral-300 dark:bg-neutral-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 mt-0.5 transform rounded-full bg-white dark:bg-neutral-900 shadow transition-transform ${
+                    showCommercialOptions ? "translate-x-[22px]" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-xs text-neutral-500 mb-3">
+              Turn on to disclose that this video promotes goods or services in
+              exchange for something of value. Your video could promote yourself,
+              a third party, or both.
+            </p>
 
             {showCommercialOptions && (
               <div className="ml-7 space-y-3 border-l-2 border-neutral-200 dark:border-neutral-700 pl-4">
@@ -732,12 +757,15 @@ export default function PostVideoPage() {
 
                 {/* Label Preview */}
                 {isPromotionalContent && (
-                  <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg space-y-1">
                     <p className="text-xs text-neutral-600 dark:text-neutral-400">
                       {brandContentToggle
                         ? <>Your video will be labeled as <span className="font-medium">&quot;Paid partnership&quot;</span></>
                         : <>Your video will be labeled as <span className="font-medium">&quot;Promotional content&quot;</span></>
                       }
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      This cannot be changed once your video is posted.
                     </p>
                   </div>
                 )}
